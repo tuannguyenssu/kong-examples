@@ -1,0 +1,123 @@
+version: "3.7"
+
+networks:
+ kong:
+  driver: bridge
+  name: kong-network 
+
+services:
+
+  #######################################
+  # Postgres: The database used by Kong
+  #######################################
+  kong-postgres-database:
+    container_name: kong-postgres-database
+    image: postgres:9.6
+    restart: always
+    networks:
+      - kong
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
+
+  #######################################
+  # Kong database migration
+  #######################################
+  kong-migration:
+    container_name: kong-migration
+    image: kong
+    command: "kong migrations bootstrap"
+    networks:
+      - kong
+    restart: on-failure
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-postgres-database
+    depends_on:
+      - kong-postgres-database
+
+  #######################################
+  # Konga database prepare
+  #######################################
+  konga-prepare:
+    container_name: konga-prepare
+    image: pantsel/konga
+    command: "-c prepare -a postgres -u postgresql://kong@kong-postgres-database:5432/konga_db"
+    networks:
+      - kong
+    restart: on-failure
+    depends_on:
+      - kong-postgres-database
+
+  #######################################
+  # Konga: Kong GUI
+  #######################################
+  konga:
+    container_name: konga
+    image: pantsel/konga
+    restart: always
+    networks:
+        - kong
+    environment:
+      DB_ADAPTER: postgres
+      DB_HOST: kong-postgres-database
+      DB_USER: kong
+      NO_AUTH: "true"      
+      DB_DATABASE: konga_db
+      NODE_ENV: production
+    depends_on:
+      - konga-prepare 
+      - kong-migration
+      - kong-postgres-database          
+    volumes:
+    - ./konga/data:/app/kongadata      
+    ports:
+      - "1337:1337"    
+
+  #######################################
+  # Kong: The API Gateway
+  #######################################
+  kong:
+    container_name: kong
+    image: kong
+    restart: unless-stopped
+    networks:
+      - kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-postgres-database
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_LOG_LEVEL: debug
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_PROXY_LISTEN: 0.0.0.0:8000, 0.0.0.0:8443 ssl, 0.0.0.0:9080 http2, 0.0.0.0:9081 http2 ssl
+    depends_on:
+      - kong-migration
+      - kong-postgres-database
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+    volumes:
+    - ./compose/kong/logs:/usr/local/kong/logs       
+    - ./compose/kong/logs/log.txt:/usr/local/kong/logs/log.txt       
+    - ./compose/kong/config/nginx.conf:/usr/local/kong/nginx.conf       
+    - ./compose/kong/config/nginx-kong.conf:/usr/local/kong/nginx-kong.conf       
+    ports:
+      - "8001:8001"
+      - "8444:8444"
+      - "8000:8000"
+      - "8443:8443"
+      - "9080:9080"
+      - "9081:9081"        
+
