@@ -52,7 +52,7 @@ services:
     image: openzipkin/zipkin
     restart: always
     networks:
-        - dncb
+        - kong
     depends_on:
       - kong
     ports:
@@ -66,7 +66,7 @@ services:
     image: prom/prometheus
     restart: always
     networks:
-        - dncb
+        - kong
     depends_on:
       - kong
     volumes: 
@@ -82,7 +82,7 @@ services:
     image: grafana/grafana
     restart: always
     networks:
-        - dncb
+        - kong
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin        
     volumes:

@@ -5,7 +5,7 @@ _format_version: "1.1"
 plugins:
 - name: file-log
   enabled: yes
-  service: product-service
+  service: default-service
   config: 
     path: /usr/local/kong/logs/log.txt
 

@@ -21,15 +21,7 @@ plugins:
     header_names: ["Authorization"]    
     uri_param_names: 
     key_claim_name: iss
-    run_on_preflight: true  
-
-- name: rate-limiting
-  enabled: no
-  service: default-service
-  config: 
-    second: 4
-    hour: 1000
-    policy: local    
+    run_on_preflight: true     
 
 # Cấu hình các Upstreams
 
