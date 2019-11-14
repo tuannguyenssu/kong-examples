@@ -1,0 +1,42 @@
+version: "3.7"
+
+networks:
+ kong:
+  driver: bridge
+  name: kong-network 
+
+services:
+
+  #######################################
+  # Kong: The API Gateway
+  #######################################
+  kong:
+    container_name: kong
+    image: tuannguyenssu/kong:latest
+    restart: always
+    build:
+      context: ./compose/kong
+      dockerfile: Dockerfile    
+    networks:
+      - kong
+    environment:
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+    volumes:
+    - ./compose/kong/logs:/usr/local/kong/logs       
+    - ./compose/kong/declarative/kong.yml:/usr/local/kong/declarative/kong.yml       
+    - ./compose/kong/config/kong.conf:/etc/kong.conf   
+    ports:
+      - "8001:8001"
+      - "8444:8444"
+      - "8000:8000"
+      - "8443:8443"
+      - "9080:9080"
+      - "9081:9081"     
+      - "8100:8100"     
+

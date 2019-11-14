@@ -1,0 +1,117 @@
+_format_version: "1.1"
+
+# Ví dụ cấu hình một APIs đơn giản với Kong
+
+# Cấu hình các Upstreams
+
+upstreams:
+- name: default-upstream
+  hash_on: none
+  algorithm: round-robin
+  tags: 
+  hash_fallback: none
+  hash_on_cookie_path: "/"
+  # healthchecks:
+  #     passive:
+  #       healthy:
+  #         http_statuses:
+  #         - 200
+  #         - 304
+  #         successes: 1
+  #       type: https
+  #       unhealthy:
+  #         http_failures: 5
+  #         http_statuses:
+  #         - 429
+  #         - 500
+  #         - 503
+  #         tcp_failures: 2
+  #         timeouts: 2  
+    # active:
+    #   unhealthy:
+    #     http_statuses:
+    #     - 429
+    #     - 404
+    #     - 500
+    #     - 501
+    #     - 502
+    #     - 503
+    #     - 504
+    #     - 505
+    #     tcp_failures: 0
+    #     timeouts: 0
+    #     http_failures: 0
+    #     interval: 0
+    #   type: https
+    #   http_path: "/"
+    #   timeout: 1
+    #   healthy:
+    #     successes: 0
+    #     interval: 0
+    #     http_statuses:
+    #     - 200
+    #     - 302
+    #   https_verify_certificate: true
+    #   concurrency: 10
+    # passive:
+    #   unhealthy:
+    #     http_failures: 0
+    #     http_statuses:
+    #     - 429
+    #     - 500
+    #     - 503
+    #     tcp_failures: 0
+    #     timeouts: 0
+    #   healthy:
+    #     http_statuses:
+    #     - 200
+    #     - 201
+    #     - 202
+    #     - 203
+    #     - 204
+    #     - 205
+    #     - 206
+    #     - 207
+    #     - 208
+    #     - 226
+    #     - 300
+    #     - 301
+    #     - 302
+    #     - 303
+    #     - 304
+    #     - 305
+    #     - 306
+    #     - 307
+    #     - 308
+    #     successes: 0
+    #   type: https
+  slots: 200
+  targets:
+    - target: reqres.in:443
+      weight: 200
+
+# Cấu hình các Services và Routes
+
+services:
+- name: default-service
+  host: default-upstream
+  # url : http://reqres.in  
+  connect_timeout: 600000
+  protocol: https
+  read_timeout: 600000
+  port: 443
+  path: "/"
+  retries: 5
+  write_timeout: 600000  
+  routes:
+    - name: default-route
+      methods: 
+      - GET        
+      paths:
+        - /api/users
+      protocols:
+      - http
+      - https
+      regex_priority: 0
+      strip_path: false
+      preserve_host: false 
